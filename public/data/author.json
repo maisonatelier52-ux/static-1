@@ -1,0 +1,56 @@
+{
+  "rob-lewis": {
+    "name": "Rob Lewis",
+    "category": "Business",
+    "avatar": "/images/image3.webp",
+    "bio": "Rob is a senior business writer at Urban Observer, with more than 10 years of financial and market reporting experience. Passionate and detail oriented, he has a proven track record of reliability and fairness that sets him apart from others. Always looking for the next big story!",
+    "website": "http://cloud.tagdiv.com/newspaper_urban_observer",
+    "facebook": "#",
+    "instagram": "#"
+  },
+  "ava-chen": {
+    "name": "Ava Chen",
+    "category": "Technology",
+    "avatar": "/images/image1.webp",
+    "bio": "Ava covers technology and consumer devices for Urban Observer, translating complex product launches and industry shifts into stories anyone can follow. She has a background in software engineering and a soft spot for anything with a good UI.",
+    "website": "http://cloud.tagdiv.com/newspaper_urban_observer",
+    "facebook": "#",
+    "instagram": "#"
+  },
+  "daniel-brooks": {
+    "name": "Daniel Brooks",
+    "category": "Politics",
+    "avatar": "/images/image2.webp",
+    "bio": "Daniel is Urban Observer's politics correspondent, covering elections, policy, and the people shaping public life. He's spent over a decade reporting from statehouses and campaign trails, and believes good political writing should be clear, not clever.",
+    "website": "http://cloud.tagdiv.com/newspaper_urban_observer",
+    "facebook": "#",
+    "instagram": "#"
+  },
+  "maria-torres": {
+    "name": "Maria Torres",
+    "category": "Investigation",
+    "avatar": "/images/image3.webp",
+    "bio": "Maria leads investigative reporting at Urban Observer, digging into fraud, corporate accountability, and stories that take months to unravel. She previously worked in data journalism and has a habit of reading contracts for fun.",
+    "website": "http://cloud.tagdiv.com/newspaper_urban_observer",
+    "facebook": "#",
+    "instagram": "#"
+  },
+  "james-carter": {
+    "name": "James Carter",
+    "category": "Health",
+    "avatar": "/images/image1.webp",
+    "bio": "James writes about health, wellness, and the science behind everyday habits for Urban Observer. A former public health researcher, he's committed to separating solid evidence from wellness-industry noise.",
+    "website": "http://cloud.tagdiv.com/newspaper_urban_observer",
+    "facebook": "#",
+    "instagram": "#"
+  },
+  "sophie-nolan": {
+    "name": "Sophie Nolan",
+    "category": "Sports",
+    "avatar": "/images/image2.webp",
+    "bio": "Sophie covers sports for Urban Observer, from major league business to grassroots athletics. A former collegiate athlete herself, she's especially drawn to stories about what happens off the field.",
+    "website": "http://cloud.tagdiv.com/newspaper_urban_observer",
+    "facebook": "#",
+    "instagram": "#"
+  }
+}

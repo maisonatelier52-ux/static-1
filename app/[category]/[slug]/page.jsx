@@ -8,54 +8,35 @@ import authorData from "../../../public/data/author.json";
 /**
  * app/[category]/[slug]/page.jsx — article detail page.
  *
- * Same visual design/structure as before (sticky sidebar with Top 5 + Related
- * Posts, article header with byline + share icons, hero image, body,
- * tags, author bio) — only the data format changed to match your other
- * project's pattern:
- *  - articleData/authorData imported from JSON files instead of hardcoded
- *    consts.
- *  - next/image instead of raw <img>.
- *  - next/link for internal links instead of <a href="#">.
- *  - Dates stored as "DD/MM/YYYY" and formatted with parseDate/formatDate,
- *    same convention as your category page reference.
+ * Sticky sidebar with Top 5 + Related Posts, article header with byline +
+ * share icons, hero image, body, tags, author bio — plus full SEO:
+ *  - generateMetadata(): title, description, canonical URL, Open Graph,
+ *    Twitter card — all sourced from article.json.
+ *  - JSON-LD: NewsArticle, BreadcrumbList, Organization — same source.
  *
- * Expected shape of /public/data/article.json:
- *   {
- *     "technology": [
- *       {
- *         "slug": "cybersecurity-protecting-yourself-online",
- *         "title": "...",
- *         "category": "Technology",
- *         "author": "Rob Lewis",
- *         "date": "13/09/2023",
- *         "readTime": "3 min. read",
- *         "image": "/images/image3.webp",
- *         "tags": ["Magazine", "Newspaper", "Urban"],
- *         "body": [
- *           { "type": "heading", "text": "..." },
- *           { "type": "paragraph", "text": "..." },
- *           { "type": "image", "src": "/images/image1.webp" }
- *         ]
- *       }
- *     ],
- *     "drama": [ ... ]
- *   }
- *
- * Expected shape of /public/data/author.json:
- *   {
- *     "Rob Lewis": {
- *       "avatar": "/images/image3.webp",
- *       "bio": "..."
- *     }
- *   }
- *
- * Skipped on purpose (unchanged from before):
- *  - The "Leave a Reply" comment form.
- *  - The Previous Article / Next Article / Popular Articles row.
- *  - The floating "DEMOS / HOSTING / SERVICES / BUY" box.
- *  - The duplicate nav row under the title (sticky Header re-appearing).
- *  - The back-to-top button — already global, in Footer.jsx.
+ * author.json is keyed by slug (e.g. "rob-lewis"), each entry has a
+ * "name" field. Author lookup matches article.author against info.name;
+ * the object key is the slug used for /authors/[slug] routing.
  */
+
+// --- Site-wide constants (NOT article-specific, so NOT in article.json) ---
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://yourdomain.com"; // ⚠️ replace
+const SITE_NAME = "Urban Observer"; // ⚠️ replace if different
+const DEFAULT_OG_IMAGE = `${SITE_URL}/images/og-default.jpg`;
+
+function getAbsoluteUrl(path) {
+  if (!path) return DEFAULT_OG_IMAGE;
+  return path.startsWith("http") ? path : `${SITE_URL}${path}`;
+}
+
+function getExcerpt(body, maxLength = 160) {
+  const firstParagraph = body?.find((b) => b.type === "paragraph");
+  if (!firstParagraph) return "";
+  const text = firstParagraph.text;
+  return text.length > maxLength
+    ? text.slice(0, maxLength - 1).trimEnd() + "…"
+    : text;
+}
 
 function FacebookIcon(props) {
   return (
@@ -247,6 +228,59 @@ function AuthorBio({ name, bio, avatar, slug }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// generateMetadata — title, description, canonical URL, OG, Twitter card
+// all sourced directly from the matching entry in article.json
+// ---------------------------------------------------------------------------
+export async function generateMetadata({ params }) {
+  const { category, slug } = await params;
+  const categoryPosts = articleData[category] || [];
+  const article = categoryPosts.find((post) => post.slug === slug);
+
+  if (!article) {
+    return {
+      title: "Article Not Found",
+      description: "The article you're looking for doesn't exist.",
+    };
+  }
+
+  const url = `${SITE_URL}/${category}/${slug}`;
+  const imageUrl = getAbsoluteUrl(article.image);
+  const description = getExcerpt(article.body);
+
+  return {
+    title: article.title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title: article.title,
+      description,
+      url,
+      siteName: SITE_NAME,
+      type: "article",
+      publishedTime: parseDate(article.date).toISOString(),
+      authors: [article.author],
+      tags: article.tags,
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: article.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description,
+      images: [imageUrl],
+    },
+  };
+}
+
 export default async function ArticlePage({ params }) {
   const { category, slug } = await params;
 
@@ -261,6 +295,8 @@ export default async function ArticlePage({ params }) {
     );
   }
 
+  // author.json is keyed by slug, each entry has a "name" field.
+  // Find the [slugKey, info] pair whose name matches article.author.
   const authorEntry = Object.entries(authorData).find(
     ([, info]) => info.name === article.author
   );
@@ -289,8 +325,74 @@ export default async function ArticlePage({ params }) {
       href: `/${category}/${post.slug}`,
     }));
 
+  // ---------------------------------------------------------------------
+  // JSON-LD — NewsArticle + BreadcrumbList + Organization, sourced from
+  // the same `article` object pulled from article.json
+  // ---------------------------------------------------------------------
+  const url = `${SITE_URL}/${category}/${slug}`;
+  const imageUrl = getAbsoluteUrl(article.image);
+  const description = getExcerpt(article.body);
+  const publishedIso = parseDate(article.date).toISOString();
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "NewsArticle",
+        "@id": `${url}#article`,
+        headline: article.title,
+        description,
+        image: [imageUrl],
+        datePublished: publishedIso,
+        dateModified: publishedIso,
+        author: {
+          "@type": "Person",
+          name: article.author,
+          ...(authorSlug ? { url: `${SITE_URL}/authors/${authorSlug}` } : {}),
+          ...(authorInfo.category ? { knowsAbout: authorInfo.category } : {}),
+        },
+        publisher: {
+          "@type": "Organization",
+          name: SITE_NAME,
+          logo: {
+            "@type": "ImageObject",
+            url: `${SITE_URL}/images/logo.png`, // ⚠️ replace with real logo
+          },
+        },
+        mainEntityOfPage: { "@type": "WebPage", "@id": url },
+        articleSection: article.category,
+        keywords: article.tags.join(", "),
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${url}#breadcrumb`,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: article.category,
+            item: `${SITE_URL}/${category}`,
+          },
+          { "@type": "ListItem", position: 3, name: article.title, item: url },
+        ],
+      },
+      {
+        "@type": "Organization",
+        "@id": `${SITE_URL}#organization`,
+        name: SITE_NAME,
+        url: SITE_URL,
+        logo: { "@type": "ImageObject", url: `${SITE_URL}/images/logo.png` },
+      },
+    ],
+  };
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr] lg:gap-10">
         <Sidebar
           topFive={topFive}
@@ -313,7 +415,12 @@ export default async function ArticlePage({ params }) {
 
           <ArticleBody body={article.body} />
           <TagsRow tags={article.tags} />
-          <AuthorBio name={article.author} bio={authorInfo.bio} avatar={authorInfo.avatar} slug={authorSlug} />
+          <AuthorBio
+            name={article.author}
+            bio={authorInfo.bio}
+            avatar={authorInfo.avatar}
+            slug={authorSlug}
+          />
         </article>
       </div>
     </main>

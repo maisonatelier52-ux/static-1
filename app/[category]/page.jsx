@@ -10,26 +10,26 @@ const DEFAULT_AVATAR = "/images/image3.webp";
 /**
  * app/[category]/page.jsx — dynamic category page.
  *
- * Same visual design as before (grey banner header with category name +
- * secondary category nav capped with a bold black rule, 4-column grid of
- * article cards with the white overlapping title box) — only the data
- * format changed to match your other project's pattern:
- *  - articleData imported from /public/data/article.json instead of a
- *    hardcoded ARTICLES array. The JSON is already keyed by category, same
- *    shape as your article-detail-page reference.
- *  - authorData imported from /public/data/author.json to show each
- *    article's author avatar next to their name, same as your other
- *    project's category page reference. authorData is keyed by slug
- *    (e.g. "rob-lewis"), so it's matched by searching for an entry whose
- *    `.name` equals the article's `author` string.
- *  - next/image instead of raw <img>.
- *  - next/link for internal links instead of <a href="#">.
- *  - The category nav list is now derived from the JSON's keys instead of
- *    a separate hardcoded ALL_CATEGORIES array, so adding a category to
- *    article.json automatically adds it to this nav too.
+ * Grey banner header with category name + secondary category nav capped
+ * with a bold black rule, 4-column grid of article cards with the white
+ * overlapping title box — plus full SEO:
+ *  - generateMetadata(): title, description, canonical URL, Open Graph,
+ *    Twitter card — all sourced from article.json (category's articles).
+ *  - JSON-LD: CollectionPage + ItemList (articles in category) +
+ *    BreadcrumbList + Organization — same source.
  *
  * Next.js 15/16: `params` is async, so it's awaited below.
  */
+
+// --- Site-wide constants (NOT category-specific, so NOT in article.json) ---
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://yourdomain.com"; // ⚠️ replace
+const SITE_NAME = "Urban Observer"; // ⚠️ replace if different
+const DEFAULT_OG_IMAGE = `${SITE_URL}/images/og-default.jpg`;
+
+function getAbsoluteUrl(path) {
+  if (!path) return DEFAULT_OG_IMAGE;
+  return path.startsWith("http") ? path : `${SITE_URL}${path}`;
+}
 
 // Dates in article.json are stored as "DD/MM/YYYY"
 const parseDate = (dateStr) => {
@@ -90,6 +90,63 @@ function ArticleCard({ href, image, title, category, author, authorAvatar }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// generateMetadata — title, description, canonical URL, OG, Twitter card,
+// all sourced from article.json (using the category's own articles/label)
+// ---------------------------------------------------------------------------
+export async function generateMetadata({ params }) {
+  const { category } = await params;
+  const categoryLabel = capitalize(category);
+  const articles = articleData[category] || [];
+
+  if (articles.length === 0) {
+    return {
+      title: `${categoryLabel} — ${SITE_NAME}`,
+      description: `Browse the latest ${categoryLabel} articles on ${SITE_NAME}.`,
+    };
+  }
+
+  const url = `${SITE_URL}/${category}`;
+  // Use the most recent article's image as the category's representative OG image
+  const latestArticle = articles
+    .slice()
+    .sort((a, b) => parseDate(b.date) - parseDate(a.date))[0];
+  const imageUrl = getAbsoluteUrl(latestArticle.image);
+  const description = `Read the latest ${categoryLabel} coverage from ${SITE_NAME}: ${articles
+    .slice(0, 3)
+    .map((a) => a.title)
+    .join(", ")}.`;
+
+  return {
+    title: `${categoryLabel} — ${SITE_NAME}`,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title: `${categoryLabel} — ${SITE_NAME}`,
+      description,
+      url,
+      siteName: SITE_NAME,
+      type: "website",
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: categoryLabel,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${categoryLabel} — ${SITE_NAME}`,
+      description,
+      images: [imageUrl],
+    },
+  };
+}
+
 export default async function CategoryPage({ params }) {
   const { category } = await params;
   const categoryLabel = capitalize(category);
@@ -102,8 +159,65 @@ export default async function CategoryPage({ params }) {
     .slice()
     .sort((a, b) => parseDate(b.date) - parseDate(a.date));
 
+  // ---------------------------------------------------------------------
+  // JSON-LD — CollectionPage + ItemList (articles in this category) +
+  // BreadcrumbList + Organization, sourced from article.json
+  // ---------------------------------------------------------------------
+  const url = `${SITE_URL}/${category}`;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": `${url}#collectionpage`,
+        name: `${categoryLabel} — ${SITE_NAME}`,
+        url,
+        isPartOf: {
+          "@type": "WebSite",
+          name: SITE_NAME,
+          url: SITE_URL,
+        },
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${url}#articles`,
+        name: `${categoryLabel} Articles`,
+        itemListElement: articles.map((post, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          url: `${SITE_URL}/${category}/${post.slug}`,
+          name: post.title,
+        })),
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${url}#breadcrumb`,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: categoryLabel, item: url },
+        ],
+      },
+      {
+        "@type": "Organization",
+        "@id": `${SITE_URL}#organization`,
+        name: SITE_NAME,
+        url: SITE_URL,
+        logo: {
+          "@type": "ImageObject",
+          url: `${SITE_URL}/images/logo.png`, // ⚠️ replace with real logo
+        },
+      },
+    ],
+  };
+
   return (
     <main className="w-full bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <CategoryHeader label={categoryLabel} categories={otherCategories} />
 
       <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6">

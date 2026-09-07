@@ -10,22 +10,22 @@ import articleData from "../public/data/article.json";
 
 /**
  * TrendingNews — homepage section with 3 columns:
- *  - Investigation: bordered card, a featured article carousel (image with
+ *  - Finance: bordered card, a featured article carousel (image with
  *    an overlapping white title box, byline, excerpt) with working
- *    prev/next arrows that cycle through every Investigation article.
- *  - Health / Sports: plain lists — bold two-line title on the left, small
+ *    prev/next arrows that cycle through every Finance article.
+ *  - U.S. / Sports: plain lists — bold two-line title on the left, small
  *    square thumbnail on the right, separated by hairlines.
  *
  * Column heading style: centered, uppercase, italic, with a thin underline.
- * "Investigation" is red, "Health"/"Sports" are black. Titles go
+ * "Finance" is red, "U.S."/"Sports" are black. Titles go
  * black -> red on hover, same pattern as the rest of the homepage.
  *
  * Data: each column pulls its own category from
  * /public/data/article.json, sorted newest first.
- *  - The Investigation carousel cycles through ALL Investigation articles
+ *  - The Finance carousel cycles through ALL Finance articles
  *    (wraps around at both ends) — nothing is "used up" by cycling, so
  *    there's no overlap concern there.
- *  - Health and Sports lists show up to 7 articles each (newest first);
+ *  - U.S. and Sports lists show up to 7 articles each (newest first);
  *    with 8 articles in each category that leaves 1 unused per category,
  *    same "no repeats" approach as the rest of the homepage.
  */
@@ -59,13 +59,13 @@ function ColumnHeading({ label, color }) {
   );
 }
 
-function InvestigationColumn({ articles }) {
+function FinanceColumn({ articles }) {
   const [index, setIndex] = useState(0);
 
   if (articles.length === 0) {
     return (
       <div className="border border-black border-b-4 p-6">
-        <ColumnHeading label="Investigation" color="text-[#E2432E]" />
+        <ColumnHeading label="Finance" color="text-[#E2432E]" />
         <p className="text-center text-sm text-gray-500">No articles yet.</p>
       </div>
     );
@@ -79,9 +79,9 @@ function InvestigationColumn({ articles }) {
 
   return (
     <div className="border border-black border-b-4 p-6">
-      <ColumnHeading label="Investigation" color="text-[#E2432E]" />
+      <ColumnHeading label="Finance" color="text-[#E2432E]" />
 
-      <Link href={`/investigation/${article.slug}`} className="group block">
+      <Link href={`/finance/${article.slug}`} className="group block">
         <div className="relative h-80 w-full sm:h-96">
           <Image src={article.image} alt={article.title} fill className="object-cover" />
         </div>
@@ -147,26 +147,26 @@ function ListColumn({ label, category, items }) {
 }
 
 export default function TrendingNews() {
-  const investigationArticles = (articleData.investigation || [])
+  const financeArticles = (articleData.finance || [])
     .slice()
     .sort((a, b) => parseDate(b.date) - parseDate(a.date));
 
-  const healthArticles = (articleData.health || [])
+  const usArticles = (articleData.us || [])
     .slice()
     .sort((a, b) => parseDate(b.date) - parseDate(a.date))
-    .slice(0, 7);
+    .slice(0, 6);
 
   const sportsArticles = (articleData.sports || [])
     .slice()
     .sort((a, b) => parseDate(b.date) - parseDate(a.date))
-    .slice(0, 7);
+    .slice(0, 6);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-3 lg:gap-8">
-        <InvestigationColumn articles={investigationArticles} />
+        <FinanceColumn articles={financeArticles} />
         <div className="lg:border-l lg:border-black lg:pl-8">
-          <ListColumn label="Health" category="health" items={healthArticles} />
+          <ListColumn label="U.S." category="us" items={usArticles} />
         </div>
         <div className="lg:border-l lg:border-black lg:pl-8">
           <ListColumn label="Sports" category="sports" items={sportsArticles} />

@@ -13,26 +13,29 @@ import authorData from "../../../public/data/author.json";
  * Below: a grid of the author's articles (thumbnail + title +
  * "| CATEGORY |  date"), 3 columns, separated by hairlines.
  *
+ * Plus full SEO:
+ *  - generateMetadata(): title, description, canonical URL, Open Graph
+ *    (type "profile"), Twitter card — all sourced from author.json.
+ *  - JSON-LD: Person, BreadcrumbList, ItemList of the author's articles,
+ *    Organization — sourced from author.json + article.json.
+ *
  * `authorData` is keyed by slug directly (e.g. "rob-lewis"), matching
  * the [author] route param — no derived slugify matching needed. Each
  * entry carries its own `name` (for display) and `category` (the author's
  * primary beat, for filtering/grouping authors later).
  *
- * Expected author.json shape:
- *   {
- *     "rob-lewis": {
- *       "name": "Rob Lewis",
- *       "category": "Lifestyle",
- *       "avatar": "/images/image3.webp",
- *       "bio": "...",
- *       "website": "http://cloud.tagdiv.com/newspaper_urban_observer",
- *       "facebook": "#",
- *       "instagram": "#"
- *     }
- *   }
- *
  * Next.js 15/16: `params` is async, so it's awaited below.
  */
+
+// --- Site-wide constants (NOT author-specific, so NOT in author.json) ---
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://yourdomain.com"; // ⚠️ replace
+const SITE_NAME = "Urban Observer"; // ⚠️ replace if different
+const DEFAULT_OG_IMAGE = `${SITE_URL}/images/og-default.jpg`;
+
+function getAbsoluteUrl(path) {
+  if (!path) return DEFAULT_OG_IMAGE;
+  return path.startsWith("http") ? path : `${SITE_URL}${path}`;
+}
 
 function FacebookIcon(props) {
   return (
@@ -121,6 +124,55 @@ function ArticleRow({ href, image, title, category, date }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// generateMetadata — title, description, canonical URL, OG (profile), and
+// Twitter card, all sourced directly from author.json
+// ---------------------------------------------------------------------------
+export async function generateMetadata({ params }) {
+  const { author } = await params;
+  const authorInfo = authorData[author];
+
+  if (!authorInfo) {
+    return {
+      title: "Author Not Found",
+      description: "The author you're looking for doesn't exist.",
+    };
+  }
+
+  const url = `${SITE_URL}/authors/${author}`;
+  const imageUrl = getAbsoluteUrl(authorInfo.avatar);
+  const description = authorInfo.bio;
+
+  return {
+    title: `${authorInfo.name} — Author Profile`,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title: authorInfo.name,
+      description,
+      url,
+      siteName: SITE_NAME,
+      type: "profile",
+      images: [
+        {
+          url: imageUrl,
+          width: 400,
+          height: 400,
+          alt: authorInfo.name,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary",
+      title: authorInfo.name,
+      description,
+      images: [imageUrl],
+    },
+  };
+}
+
 export default async function AuthorPage({ params }) {
   const { author } = await params;
 
@@ -139,8 +191,71 @@ export default async function AuthorPage({ params }) {
     .filter((post) => post.author === authorInfo.name)
     .sort((a, b) => parseDate(b.date) - parseDate(a.date));
 
+  // ---------------------------------------------------------------------
+  // JSON-LD — Person + BreadcrumbList + ItemList (author's articles) +
+  // Organization, sourced from author.json + article.json
+  // ---------------------------------------------------------------------
+  const url = `${SITE_URL}/authors/${author}`;
+  const imageUrl = getAbsoluteUrl(authorInfo.avatar);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": `${url}#person`,
+        name: authorInfo.name,
+        description: authorInfo.bio,
+        image: imageUrl,
+        url,
+        ...(authorInfo.category ? { knowsAbout: authorInfo.category } : {}),
+        ...(authorInfo.website ? { sameAs: [authorInfo.website].filter(Boolean) } : {}),
+        worksFor: {
+          "@type": "Organization",
+          name: SITE_NAME,
+          url: SITE_URL,
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${url}#breadcrumb`,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: "Authors", item: `${SITE_URL}/authors` },
+          { "@type": "ListItem", position: 3, name: authorInfo.name, item: url },
+        ],
+      },
+      {
+        "@type": "ItemList",
+        "@id": `${url}#articles`,
+        name: `Articles by ${authorInfo.name}`,
+        itemListElement: articles.map((post, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          url: `${SITE_URL}/${post.category.toLowerCase()}/${post.slug}`,
+          name: post.title,
+        })),
+      },
+      {
+        "@type": "Organization",
+        "@id": `${SITE_URL}#organization`,
+        name: SITE_NAME,
+        url: SITE_URL,
+        logo: {
+          "@type": "ImageObject",
+          url: `${SITE_URL}/images/logo.png`, // ⚠️ replace with real logo
+        },
+      },
+    ],
+  };
+
   return (
     <main className="w-full bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <AuthorHeader {...authorInfo} />
 
       <section className="mx-auto max-w-7xl px-4 pb-12 pt-10 sm:px-6">

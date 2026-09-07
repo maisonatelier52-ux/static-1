@@ -10,7 +10,7 @@
   },
   "ava-chen": {
     "name": "Ava Chen",
-    "category": "Technology",
+    "category": "World",
     "avatar": "/images/image1.webp",
     "bio": "Ava covers technology and consumer devices for Urban Observer, translating complex product launches and industry shifts into stories anyone can follow. She has a background in software engineering and a soft spot for anything with a good UI.",
     "website": "http://cloud.tagdiv.com/newspaper_urban_observer",
@@ -28,7 +28,7 @@
   },
   "maria-torres": {
     "name": "Maria Torres",
-    "category": "Investigation",
+    "category": "Finance",
     "avatar": "/images/image3.webp",
     "bio": "Maria leads investigative reporting at Urban Observer, digging into fraud, corporate accountability, and stories that take months to unravel. She previously worked in data journalism and has a habit of reading contracts for fun.",
     "website": "http://cloud.tagdiv.com/newspaper_urban_observer",
@@ -37,7 +37,7 @@
   },
   "james-carter": {
     "name": "James Carter",
-    "category": "Health",
+    "category": "U.S.",
     "avatar": "/images/image1.webp",
     "bio": "James writes about health, wellness, and the science behind everyday habits for Urban Observer. A former public health researcher, he's committed to separating solid evidence from wellness-industry noise.",
     "website": "http://cloud.tagdiv.com/newspaper_urban_observer",

@@ -5,7 +5,7 @@ import Link from "next/link";
 import articleData from "../public/data/article.json";
 
 /**
- * Technology — second homepage section, same visual design as TopStories.
+ * World — second homepage section, same visual design as TopStories.
  *
  * 3 columns:
  *  - Left: "Top 4 This Week" — red banner header, 4 items each with a small
@@ -16,11 +16,11 @@ import articleData from "../public/data/article.json";
  *  - Right: a plain list of 7 articles — bold title + "| CATEGORY |  date"
  *    line, separated by hairlines.
  *
- * Data: pulls articleData.technology from /public/data/article.json,
+ * Data: pulls articleData.world from /public/data/article.json,
  * sorted newest first, then split into non-overlapping groups so no
  * article appears twice on the page: the 4 newest go to Top 4, the next
  * one becomes the Featured Article, and everything after that fills the
- * Latest list. With 8 Technology articles total, that leaves 3 for
+ * Latest list. With 8 World articles total, that leaves 3 for
  * Latest right now — it'll grow toward a full 7 as more articles are
  * added to that category.
  *
@@ -114,34 +114,34 @@ function FeaturedArticle({ href, image, title, category, author, date, excerpt }
   );
 }
 
-export default function Technology() {
-  const sorted = (articleData.technology || [])
+export default function World() {
+  const sorted = (articleData.world || [])
     .slice()
     .sort((a, b) => parseDate(b.date) - parseDate(a.date));
 
   // Split into non-overlapping groups: first 4 -> Top 4, next 1 ->
-  // Featured, everything left over -> Latest. With only 8 Technology
+  // Featured, everything left over -> Latest. With only 8 World
   // articles right now, Latest ends up with 3 — it'll fill out to a
-  // full 7 automatically as more Technology articles are added.
+  // full 7 automatically as more World articles are added.
   const topFiveSource = sorted.slice(0, 4);
   const featuredSource = sorted[4];
   const latestSource = sorted.slice(5);
 
   const topFive = topFiveSource.map((article, i) => ({
-    href: `/technology/${article.slug}`,
+    href: `/world/${article.slug}`,
     image: article.image,
     title: article.title,
     category: article.category,
     rank: i + 1,
   }));
   const latest = latestSource.map((article) => ({
-    href: `/technology/${article.slug}`,
+    href: `/world/${article.slug}`,
     title: article.title,
     category: article.category,
     date: formatDate(article.date),
   }));
   const featured = featuredSource && {
-    href: `/technology/${featuredSource.slug}`,
+    href: `/world/${featuredSource.slug}`,
     image: featuredSource.image,
     title: featuredSource.title,
     category: featuredSource.category,
@@ -157,7 +157,7 @@ export default function Technology() {
         <div className="lg:col-span-3">
           <div className="bg-[#E2432E] px-4 py-3">
             <h3 className="font-display text-2xl font-bold uppercase italic tracking-wide text-white">
-              TECHNOLOGY
+              WORLD
             </h3>
           </div>
           <div className="divide-y divide-gray-300">

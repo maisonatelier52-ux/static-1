@@ -28,6 +28,13 @@ import articleData from "../public/data/article.json";
  * image, so it stays crisp at any size and the text stays selectable/SEO-able.
  * Swap the <h1> for an <img> once you have a logo file if you'd rather.
  *
+ * Nav labels vs. URL slugs:
+ *   CATEGORIES holds the display text shown to the user (e.g. "U.S.").
+ *   The URL for each link is derived with slugify(), which strips periods
+ *   and other punctuation and collapses whitespace into hyphens, so "U.S."
+ *   correctly becomes the route /us instead of /u.s. — never build hrefs
+ *   with cat.toLowerCase() directly, always go through slugify().
+ *
  * Search: clicking the search icon expands a bar below the nav. Typing
  * filters every article across all categories in article.json by title
  * (case-insensitive, live as you type), showing up to 6 matches as real
@@ -37,12 +44,28 @@ import articleData from "../public/data/article.json";
 
 const CATEGORIES = [
   "Business",
-  "Technology",
+  "World",
   "Politics",
-  "Investigation",
-  "Health",
+  "Finance",
+  "U.S.",
   "Sports",
 ];
+
+// Turns a display label into a URL-safe slug.
+// "U.S." -> "us", "Global Times" -> "global-times", "Business" -> "business".
+// Periods are dropped outright (so "U.S." doesn't become "u-s"), then any
+// remaining run of non-alphanumeric characters (spaces, slashes, etc.)
+// collapses into a single hyphen, and stray leading/trailing hyphens are
+// trimmed off. Always use this for hrefs built from a category label —
+// never label.toLowerCase() directly — so punctuated labels like "U.S."
+// still resolve to the correct route.
+function slugify(label) {
+  return label
+    .toLowerCase()
+    .replace(/\./g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 // Flatten every category's articles into one array, once, at module load
 const ALL_ARTICLES = Object.values(articleData).flat();
@@ -132,7 +155,7 @@ export default function Header({ logoSrc }) {
           </a>
 
           {CATEGORIES.map((cat) => (
-            <a key={cat} href={`/${cat.toLowerCase()}`}
+            <a key={cat} href={`/${slugify(cat)}`}
               className="shrink-0 font-display text-sm font-semibold uppercase tracking-wide transition hover:text-[#E2432E]">
               {cat}
             </a>
@@ -179,7 +202,7 @@ export default function Header({ logoSrc }) {
                   results.map((article) => (
                     <Link
                       key={article.slug}
-                      href={`/${article.category.toLowerCase()}/${article.slug}`}
+                      href={`/${slugify(article.category)}/${article.slug}`}
                       onClick={closeSearch}
                       className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-gray-50"
                     >
@@ -204,7 +227,7 @@ export default function Header({ logoSrc }) {
       {menuOpen && (
         <div className="flex flex-col divide-y divide-[#EFEDE6] border-b border-black px-4 py-2 sm:hidden">
           {CATEGORIES.map((cat) => (
-            <a key={cat} href={`/${cat.toLowerCase()}`} className="py-2.5 text-sm font-semibold uppercase tracking-wide">
+            <a key={cat} href={`/${slugify(cat)}`} className="py-2.5 text-sm font-semibold uppercase tracking-wide">
               {cat}
             </a>
           ))}

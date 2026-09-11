@@ -1,6 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowRight, ArrowUp } from "lucide-react";
+
+// Adjust this path to wherever /public/data/article.json actually sits
+// relative to this file's location in your project.
+import articleData from "../public/data/article.json";
+import authorData from "../public/data/author.json";
 
 /**
  * Footer — "UrbanObserver" style.
@@ -62,36 +68,95 @@ const SOCIALS = [
 
 const CATEGORIES = [
   "Business",
-  "Technology",
+  "World",
   "Politics",
-  "Investigation",
-  "Health",
+  "Finance",
+  "U.S.",
   "Sports",
 ];
 
-const LATEST_ARTICLES = [
-  { title: "Creative Writing as a Therapeutic Tool", category: "Lifestyle", date: "September 13, 2023" },
-  { title: "Traveling the World on a Small Budget", category: "Lifestyle", date: "September 13, 2023" },
-  { title: "The Benefits of Outdoor Activities", category: "Lifestyle", date: "September 13, 2023" },
-];
+// Converts a display label into a clean URL slug.
+// e.g. "U.S." -> "us", "Business" -> "business", "Top Stories" -> "top-stories"
+function slugify(label) {
+  return label
+    .toLowerCase()
+    .replace(/\./g, "")       // strip periods: "U.S." -> "us"
+    .trim()
+    .replace(/\s+/g, "-");    // spaces -> dashes for multi-word labels
+}
 
-const MOST_POPULAR = [
-  { title: "10 Scandalous Love Triangles Captivating the Public", category: "Scandals", date: "September 13, 2023" },
-  { title: "Debunking Movie Myths: What Hollywood Gets Wrong", category: "Celebrity", date: "September 13, 2023" },
-  { title: "The Ethical Dilemmas of Reality TV Production", category: "Drama", date: "September 13, 2023" },
-];
+const parseDate = (dateStr) => {
+  const [day, month, year] = dateStr.split("/");
+  return new Date(year, month - 1, day);
+};
+
+const formatDateLong = (dateStr) =>
+  parseDate(dateStr).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+// Every post across every category in article.json, flattened and
+// de-duplicated by slug, each carrying its own href and display category.
+function getAllArticles() {
+  const all = Object.entries(articleData).flatMap(([catKey, posts]) =>
+    (posts || []).map((p) => ({ ...p, catKey }))
+  );
+
+  const seen = new Set();
+  return all.filter((p) => {
+    if (seen.has(p.slug)) return false;
+    seen.add(p.slug);
+    return true;
+  });
+}
+
+function toListItem(p) {
+  const slug = p.categorySlug || p.catKey;
+  return {
+    title: p.title,
+    category: slug.toUpperCase() === "US" ? "U.S." : slug.charAt(0).toUpperCase() + slug.slice(1),
+    date: formatDateLong(p.date),
+    href: `/${slug}/${p.slug}`,
+  };
+}
+
+// Most recent N articles, newest first.
+function getLatestArticles(limit = 3) {
+  return getAllArticles()
+    .sort((a, b) => parseDate(b.date) - parseDate(a.date))
+    .slice(0, limit)
+    .map(toListItem);
+}
+
+// article.json currently has no real popularity signal (no view counts,
+// no click data), so rather than fake a "Most Popular" ranking, the footer
+// instead lists real authors from author.json.
+// author.json is keyed by slug (e.g. "rob-lewis"), with the display name
+// and beat living inside each entry as `name` and `category`.
+function getAuthors(limit = 3) {
+  return Object.entries(authorData)
+    .map(([slug, info]) => ({
+      name: info.name || slug,
+      role: info.category || "",
+      slug,
+      avatar: info.avatar || "",
+    }))
+    .slice(0, limit);
+}
 
 function ArticleList({ items }) {
   return (
     <ul className="space-y-6">
       {items.map((item) => (
-        <li key={item.title}>
-          <a
-            href="#"
+        <li key={item.href}>
+          <Link
+            href={item.href}
             className="font-display text-lg font-bold leading-snug transition hover:text-[#E2432E]"
           >
             {item.title}
-          </a>
+          </Link>
           <div className="mt-2 flex items-center gap-2 text-xs">
             <span className="font-bold uppercase tracking-wide">{item.category}</span>
             <span className="text-gray-500">{item.date}</span>
@@ -102,10 +167,52 @@ function ArticleList({ items }) {
   );
 }
 
+function AuthorList({ authors }) {
+  return (
+    <ul className="space-y-5">
+      {authors.map((author) => (
+        <li key={author.slug}>
+          <Link href={`/authors/${author.slug}`} className="group flex items-center gap-3">
+            {author.avatar ? (
+              <img
+                src={author.avatar}
+                alt={author.name}
+                className="h-11 w-11 shrink-0 rounded-full object-cover bg-gray-200"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.nextSibling.style.display = "flex";
+                }}
+              />
+            ) : null}
+            <div
+              className="h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-500"
+              style={{ display: author.avatar ? "none" : "flex" }}
+            >
+              {author.name.charAt(0)}
+            </div>
+            <div>
+              <p className="font-display text-base font-bold leading-snug transition group-hover:text-[#E2432E]">
+                {author.name}
+              </p>
+              {author.role && (
+                <p className="text-xs uppercase tracking-wide text-gray-500">{author.role}</p>
+              )}
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function Footer() {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const latestArticles = getLatestArticles(3);
+  const authors = getAuthors(6);
 
   return (
     <footer className="w-full bg-white text-black">
@@ -121,7 +228,7 @@ export default function Footer() {
               {CATEGORIES.map((cat) => (
                 <a
                   key={cat}
-                  href={`/section/${cat.toLowerCase()}`}
+                  href={`/${slugify(cat)}`}
                   className="transition hover:text-[#E2432E]"
                 >
                   {cat}
@@ -174,17 +281,17 @@ export default function Footer() {
             Latest Articles
           </h3>
           <div className="mt-6">
-            <ArticleList items={LATEST_ARTICLES} />
+            <ArticleList items={latestArticles} />
           </div>
         </div>
 
-        {/* Most Popular */}
+        {/* Our Authors */}
         <div className="md:px-8">
           <h3 className="font-display text-2xl font-bold uppercase tracking-wide">
-            Most Popular
+            Our Authors
           </h3>
           <div className="mt-6">
-            <ArticleList items={MOST_POPULAR} />
+            <AuthorList authors={authors} />
           </div>
         </div>
 
